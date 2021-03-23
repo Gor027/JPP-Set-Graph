@@ -19,17 +19,17 @@ data Basic a
   | Connect (Basic a) (Basic a)
 
 instance Graph Relation where
-  empty = Relation {domain = Set.Empty, relation = Set.Empty}
-  vertex a = Relation {domain = Set.Singleton a, relation = Set.Empty}
+  empty = Relation {domain = Set.empty, relation = Set.empty}
+  vertex a = Relation {domain = Set.singleton a, relation = Set.empty}
   union g1 g2 =
     Relation
-      { domain = Set.Union (domain g1) (domain g2),
-        relation = Set.Union (relation g1) (relation g2)
+      { domain = Set.union (domain g1) (domain g2),
+        relation = Set.union (relation g1) (relation g2)
       }
   connect g1 g2 =
     Relation
-      { domain = Set.Union (domain g1) (domain g2),
-        relation = Set.Union (Set.Union (relation g1) (relation g2)) (vertexProd (domain g1) (domain g2))
+      { domain = Set.union (domain g1) (domain g2),
+        relation = Set.union (Set.union (relation g1) (relation g2)) (vertexProd (domain g1) (domain g2))
       }
     where
       vertexProd s1 s2 = Set.fromList $ [(v1, v2) | v1 <- Set.toList s1, v2 <- Set.toList s2]
@@ -49,12 +49,10 @@ instance Graph Basic where
   connect = Connect
 
 instance Ord a => Eq (Basic a) where
-  g1 == g2 =
-    Set.toAscList (domain relationalG1) == Set.toAscList (domain relationalG2)
-      && Set.toAscList (relation relationalG1) == Set.toAscList (relation relationalG2)
+  g1 == g2 = toRelation g1 == toRelation g2
     where
-      relationalG1 = fromBasic g1
-      relationalG2 = fromBasic g2
+      toRelation :: Basic a -> Relation a
+      toRelation = fromBasic
 
 instance (Ord a, Num a) => Num (Basic a) where
   fromInteger = vertex . fromInteger
@@ -76,15 +74,17 @@ fromBasic (Vertex a) = vertex a
 fromBasic (Union left right) = fromBasic left `union` fromBasic right
 fromBasic (Connect left right) = fromBasic left `connect` fromBasic right
 
+sortedRelations :: (Ord a) => Basic a -> [(a, a)]
+sortedRelations g = Set.toAscList (relation $ fromBasic g)
+
+isolatedVertices :: (Ord a) => Basic a -> [a]
+isolatedVertices g = [v | v <- Set.toAscList (domain $ fromBasic g), notElem v (map fst (sortedRelations g)) == True, notElem v (map snd (sortedRelations g)) == True]
+
 instance (Ord a, Show a) => Show (Basic a) where
   show g =
-    "edges " ++ show sortedRelations
+    "edges " ++ show (sortedRelations g)
       ++ " + vertices "
-      ++ show isolatedVertices
-    where
-      relationalG = fromBasic g
-      sortedRelations = Set.toAscList (relation relationalG)
-      isolatedVertices = [v | v <- Set.toAscList (domain relationalG), notElem v (map fst sortedRelations) == True, notElem v (map snd sortedRelations) == True]
+      ++ show (isolatedVertices g)
 
 -- | Example graph
 -- >>> example34
@@ -92,8 +92,19 @@ instance (Ord a, Show a) => Show (Basic a) where
 example34 :: Basic Int
 example34 = 1 * 2 + 2 * (3 + 4) + (3 + 4) * 5 + 17
 
+appendEdges :: (Show a) => [(a, a)] -> String
+appendEdges [] = ""
+appendEdges (x : xs) = show (fst x) ++ " -> " ++ show (snd x) ++ ";\n" ++ appendEdges xs
+
+appendVertices :: (Show a) => [a] -> String
+appendVertices [] = ""
+appendVertices (x : xs) = show x ++ ";\n" ++ appendVertices xs
+
 todot :: (Ord a, Show a) => Basic a -> String
-todot = undefined
+todot g =
+  "digraph {\n" ++ appendEdges (sortedRelations g)
+    ++ appendVertices (isolatedVertices g)
+    ++ "}\n"
 
 instance Functor Basic where
   fmap _ Empty = Empty
@@ -105,7 +116,13 @@ instance Functor Basic where
 -- >>> mergeV 3 4 34 example34
 -- edges [(1,2),(2,34),(34,5)] + vertices [17]
 mergeV :: Eq a => a -> a -> a -> Basic a -> Basic a
-mergeV = undefined
+mergeV v1 v2 newV g = mergePartial v2 newV $ (mergePartial v1 newV g)
+
+mergePartial :: Eq a => a -> a -> Basic a -> Basic a
+mergePartial v newV g = mergeVertices (== v) newV g
+
+mergeVertices :: (a -> Bool) -> a -> Basic a -> Basic a
+mergeVertices p v g = fmap (\u -> if p u then v else u) g
 
 instance Applicative Basic where
   pure = Vertex
@@ -127,4 +144,4 @@ instance Monad Basic where
 -- >>> splitV 34 3 4 (mergeV 3 4 34 example34)
 -- edges [(1,2),(2,3),(2,4),(3,5),(4,5)] + vertices [17]
 splitV :: Eq a => a -> a -> a -> Basic a -> Basic a
-splitV = undefined
+splitV oldV v1 v2 g = g >>= (\u -> if u == oldV then Union (Vertex v1) (Vertex v2) else Vertex u)

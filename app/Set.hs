@@ -28,15 +28,13 @@ null Empty = True
 null _ = False
 
 member :: Eq a => a -> Set a -> Bool
-member _ Empty = False
-member x (Singleton val) = x == val
-member x (Union left right) = member x left || member x right
+member x xs = x `elem` toList xs
 
 singleton :: a -> Set a
 singleton = Singleton
 
 fromList :: [a] -> Set a
-fromList = foldr (Union . Singleton) Empty
+fromList = foldr insert Empty
 
 toList :: Set a -> [a]
 toList Empty = []
