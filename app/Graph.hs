@@ -1,5 +1,6 @@
 module Graph where
 
+import qualified Data.List as L
 import Set (Set)
 import qualified Set as Set
 
@@ -78,7 +79,10 @@ sortedRelations :: (Ord a) => Basic a -> [(a, a)]
 sortedRelations g = Set.toAscList (relation $ fromBasic g)
 
 isolatedVertices :: (Ord a) => Basic a -> [a]
-isolatedVertices g = [v | v <- Set.toAscList (domain $ fromBasic g), notElem v (map fst (sortedRelations g)) == True, notElem v (map snd (sortedRelations g)) == True]
+isolatedVertices g = (domainList L.\\ fst pairOfLists) L.\\ snd pairOfLists
+  where
+    pairOfLists = foldr (\(a, b) (as, bs) -> (a : as, b : bs)) ([], []) $ sortedRelations g
+    domainList = Set.toAscList (domain $ fromBasic g)
 
 instance (Ord a, Show a) => Show (Basic a) where
   show g =
@@ -116,22 +120,23 @@ instance Functor Basic where
 -- >>> mergeV 3 4 34 example34
 -- edges [(1,2),(2,34),(34,5)] + vertices [17]
 mergeV :: Eq a => a -> a -> a -> Basic a -> Basic a
-mergeV v1 v2 newV g = mergePartial v2 newV $ (mergePartial v1 newV g)
+mergeV v1 v2 newV g = mergePartial v2 newV (mergePartial v1 newV g)
 
 mergePartial :: Eq a => a -> a -> Basic a -> Basic a
-mergePartial v newV g = mergeVertices (== v) newV g
+mergePartial v = mergeVertices (== v)
 
 mergeVertices :: (a -> Bool) -> a -> Basic a -> Basic a
-mergeVertices p v g = fmap (\u -> if p u then v else u) g
+mergeVertices p v = fmap (\u -> if p u then v else u)
 
 instance Applicative Basic where
   pure = Vertex
   Empty <*> _ = Empty
+  _ <*> Empty = Empty
   Vertex f <*> g1 = fmap f g1
-  Union left right <*> Vertex a = Union (fmap ($ a) left) (fmap ($ a) right)
-  Union left1 right1 <*> Union left2 right2 = Union (left1 <*> left2) (right1 <*> right2)
-  Connect left right <*> Vertex a = Connect (fmap ($ a) left) (fmap ($ a) right)
-  Connect left1 right1 <*> Connect left2 right2 = Connect (left1 <*> left2) (right1 <*> right2)
+  Union fLeft fRight <*> Vertex a = Union (fmap ($ a) fLeft) (fmap ($ a) fRight)
+  Union fLeft fRight <*> Union left right = Union (fLeft <*> left) (fRight <*> right)
+  Connect fLeft fRight <*> Vertex a = Connect (fmap ($ a) fLeft) (fmap ($ a) fRight)
+  Connect fLeft fRight <*> Connect left right = Connect (fLeft <*> left) (fRight <*> right)
 
 instance Monad Basic where
   return = Vertex
