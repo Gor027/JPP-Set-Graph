@@ -56,8 +56,10 @@ readOneInt s
 
 ------------------------------------
 
-main :: IO ()
-main = someFunc
+
+
+--main :: IO ()
+--main = someFunc
 
 
 -- a
@@ -77,7 +79,28 @@ askForHaskell = do
     "haskell" -> return ()
     _ -> askForHaskell
 
+askForHaskell2 = while test askForHaskell2 where
+  test = do
+    putStrLn "What is your favorite language?"
+    s <- getLine
+    return $ s == "haskell"
+
+while test block = test >>= (\u -> if u then return () else block)
+
 --c 
 
-
+main = do
+  args <- getArgs
+  case args of
+    [file] -> openFile file ReadMode >>= wc
+    [] -> wc stdin
+    _ -> do
+      name <- getProgName
+      putStrLn $ "Usage: " ++ name ++ " file"
+      
+wc :: Handle -> IO () 
+wc fileHandle = do
+  text <- hGetContents fileHandle
+  let result = [length text, length $ words text, length $ lines text]
+  putStrLn $ unwords $ map show result
 
