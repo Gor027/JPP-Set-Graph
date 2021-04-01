@@ -135,13 +135,6 @@ instance Applicative Basic where
   Vertex f <*> g1 = fmap f g1
   Union fLeft fRight <*> g1 = Union (fLeft <*> g1) (fRight <*> g1)
   Connect fLeft fRight <*> g1 = Connect (fLeft <*> g1) (fRight <*> g1)
-    
---  Union fLeft fRight <*> Vertex a = Union (fmap ($ a) fLeft) (fmap ($ a) fRight)
---  Union fLeft fRight <*> Union left right = Union (fLeft <*> left) (fRight <*> right)
---  Union fLeft fRight <*> Connect left right = Union (fLeft <*> left) (fRight <*> right)
---  Connect fLeft fRight <*> Vertex a = Connect (fmap ($ a) fLeft) (fmap ($ a) fRight)
---  Connect fLeft fRight <*> Connect left right = Connect (fLeft <*> left) (fRight <*> right)
---  Connect fLeft fRight <*> Union left right = Connect (fLeft <*> left) (fRight <*> right)
 
 instance Monad Basic where
   return = Vertex

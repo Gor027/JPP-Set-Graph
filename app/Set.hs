@@ -72,4 +72,6 @@ instance Show a => Show (Set a) where
   show (Union left right) = show left ++ " " ++ show right
 
 instance Functor Set where
-  fmap f = fromList . map f . toList
+  fmap _ Empty = Empty
+  fmap f (Singleton a) = Singleton (f a)
+  fmap f (Union a b) = Union (fmap f a) (fmap f b)

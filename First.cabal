@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3ec4d769bb930b0157c59578176fae006043079bdb83d8bebaf5d3104579eb6c
+-- hash: e1f3adb0cc713a80f4d0a933354fa351f3fa55a8d08f4e1a4e3734def7eb3900
 
 name:           First
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , containers
     , mtl
   default-language: Haskell2010
 
@@ -55,6 +56,7 @@ executable First-exe
       First
     , QuickCheck
     , base >=4.7 && <5
+    , containers
     , mtl
   default-language: Haskell2010
 
@@ -70,5 +72,6 @@ test-suite First-test
       First
     , QuickCheck
     , base >=4.7 && <5
+    , containers
     , mtl
   default-language: Haskell2010
